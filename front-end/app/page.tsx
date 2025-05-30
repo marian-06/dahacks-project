@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import Pomodoro from "@/components/Pomodoro"
 
 interface ProcessedContent {
   summary: string
@@ -158,64 +159,57 @@ export default function HomePage() {
           </p>
         </div>
 
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
-              Upload Your Study Materials
-            </CardTitle>
-            <CardDescription>
-              Upload a PDF or text file containing your notes, syllabus, or study materials
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <input type="file" accept=".pdf,.txt" onChange={handleFileUpload} className="hidden" id="file-upload" />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
-                  <p className="text-xs text-gray-500">PDF or TXT files only</p>
-                </label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <Card className="mb-6 md:mb-0">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="w-5 h-5" />
+                Upload Your Study Materials
+              </CardTitle>
+              <CardDescription>
+                Upload a PDF or text file containing your notes, syllabus, or study materials
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <input type="file" accept=".pdf,.txt" onChange={handleFileUpload} className="hidden" id="file-upload" />
+                  <label htmlFor="file-upload" className="cursor-pointer">
+                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
+                    <p className="text-xs text-gray-500">PDF or TXT files only</p>
+                  </label>
+                </div>
+
+                {file && (
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm font-medium">{file.name}</span>
+                    <Button onClick={processFile} disabled={isProcessing} className="ml-4">
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        "Generate Study Kit"
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {isProcessing && (
+                  <div className="space-y-2">
+                    <Progress value={progress} className="w-full" />
+                  </div>
+                )}
               </div>
+            </CardContent>
+          </Card>
 
-              {file && (
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span className="text-sm font-medium">{file.name}</span>
-                  <Button onClick={processFile} disabled={isProcessing} className="ml-4">
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      "Generate Study Kit"
-                    )}
-                  </Button>
-                </div>
-              )}
-
-              {isProcessing && (
-                <div className="space-y-2">
-                  <Progress value={progress} className="w-full" />
-                  <p className="text-sm text-gray-600 text-center">
-                    {progress < 25 && "Extracting text..."}
-                    {progress >= 25 && progress < 60 && "Generating flashcards and summary..."}
-                    {progress >= 60 && progress < 85 && "Creating PDF..."}
-                    {progress >= 85 && progress < 100 && "Generating audio..."}
-                    {progress === 100 && "Complete!"}
-                  </p>
-                </div>
-              )}
-
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          <div className="flex items-start">
+            <Pomodoro />
+          </div>
+        </div>
 
         {result && (
           <div className="space-y-6">

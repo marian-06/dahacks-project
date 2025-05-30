@@ -10,12 +10,77 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 import tempfile
 from dotenv import load_dotenv
+import time
+import threading
+from datetime import datetime, timedelta
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+# Configure CORS to allow requests from frontend
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://localhost:3000"],  # Next.js default port
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
+
+# Pomodoro timer state
+pomodoro_state = {
+    'is_active': False,
+    'is_break': False,
+    'start_time': None,
+    'timer_thread': None
+}
+
+def reset_pomodoro_state():
+    pomodoro_state['is_active'] = False
+    pomodoro_state['is_break'] = False
+    pomodoro_state['start_time'] = None
+    pomodoro_state['timer_thread'] = None
+
+def pomodoro_timer():
+    while pomodoro_state['is_active']:
+        if not pomodoro_state['is_break']:
+            # Work period (25 minutes)
+            time.sleep(25 * 60)
+            if pomodoro_state['is_active']:
+                pomodoro_state['is_break'] = True
+                print("Time's up! Take a break.")
+        else:
+            # Break period (5 minutes)
+            time.sleep(5 * 60)
+            if pomodoro_state['is_active']:
+                pomodoro_state['is_break'] = False
+                print("Break's over! Back to work.")
+
+@app.route('/pomodoro/start', methods=['POST'])
+def start_pomodoro():
+    if not pomodoro_state['is_active']:
+        pomodoro_state['is_active'] = True
+        pomodoro_state['start_time'] = datetime.now()
+        pomodoro_state['timer_thread'] = threading.Thread(target=pomodoro_timer)
+        pomodoro_state['timer_thread'].start()
+        return jsonify({'message': 'Pomodoro timer started', 'status': 'running'})
+    return jsonify({'message': 'Pomodoro timer is already running', 'status': 'running'})
+
+@app.route('/pomodoro/stop', methods=['POST'])
+def stop_pomodoro():
+    if pomodoro_state['is_active']:
+        reset_pomodoro_state()
+        return jsonify({'message': 'Pomodoro timer stopped', 'status': 'stopped'})
+    return jsonify({'message': 'Pomodoro timer is not running', 'status': 'stopped'})
+
+@app.route('/pomodoro/status', methods=['GET'])
+def get_pomodoro_status():
+    status = {
+        'is_active': pomodoro_state['is_active'],
+        'is_break': pomodoro_state['is_break'],
+        'start_time': pomodoro_state['start_time'].isoformat() if pomodoro_state['start_time'] else None
+    }
+    return jsonify(status)
 
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
@@ -131,4 +196,7 @@ def download_file(file_type):
     return jsonify({'error': 'Invalid file type'}), 400
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    print("Starting Flask server on http://localhost:5000")
+    app.run(host='0.0.0.0', port=5000, debug=True) 
+
+

@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
-import { Upload, FileText, Download, Loader2, Volume2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Upload, FileText, Download, Loader2, Volume2, VolumeX } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -23,6 +22,7 @@ export default function HomePage() {
   const [progress, setProgress] = useState(0)
   const [result, setResult] = useState<ProcessedContent | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0]
@@ -141,13 +141,38 @@ export default function HomePage() {
 
   const playAudio = () => {
     if (result?.summary && "speechSynthesis" in window) {
+      // Cancel any ongoing speech
+      speechSynthesis.cancel();
+      
       const utterance = new SpeechSynthesisUtterance(result.summary)
       utterance.rate = 0.8
       utterance.pitch = 1
       utterance.volume = 1
+      
+      // Add event listeners
+      utterance.onstart = () => setIsPlaying(true);
+      utterance.onend = () => setIsPlaying(false);
+      utterance.onerror = () => setIsPlaying(false);
+      
       speechSynthesis.speak(utterance)
     }
   }
+
+  const stopAudio = () => {
+    if ("speechSynthesis" in window) {
+      speechSynthesis.cancel()
+      setIsPlaying(false)
+    }
+  }
+
+  // Cleanup speech synthesis when component unmounts
+  useEffect(() => {
+    return () => {
+      if ("speechSynthesis" in window) {
+        speechSynthesis.cancel()
+      }
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -228,9 +253,22 @@ export default function HomePage() {
                     <Download className="w-4 h-4 mr-2" />
                     Download Study Guide
                   </Button>
-                  <Button onClick={playAudio} className="w-full" variant="outline">
-                    <Volume2 className="w-4 h-4 mr-2" />
-                    Play Audio Summary
+                  <Button 
+                    onClick={isPlaying ? stopAudio : playAudio} 
+                    className="w-full" 
+                    variant="outline"
+                  >
+                    {isPlaying ? (
+                      <>
+                        <VolumeX className="w-4 h-4 mr-2" />
+                        Stop Audio
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="w-4 h-4 mr-2" />
+                        Play Audio Summary
+                      </>
+                    )}
                   </Button>
                   {result.audioUrl && (
                     <Button
